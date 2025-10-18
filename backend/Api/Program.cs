@@ -17,31 +17,29 @@ builder.Services.Configure<SentimentOptions>(builder.Configuration.GetSection("S
 builder.Services.AddHttpClient<ISentimentClient, SentimentClient>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
-// ===== CORS =====
+// ===== CORS (vercel.app + localhost) =====
 const string CorsPolicy = "_frontend";
-
-// Birden fazla origin desteklemek için: "https://app.vercel.app,https://preview.vercel.app"
-var originsCsv = builder.Configuration["ClientOrigin"] ?? string.Empty;
-var origins = originsCsv
-    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
 builder.Services.AddCors(o =>
 {
     o.AddPolicy(CorsPolicy, p =>
     {
-        if (origins.Length > 0)
+        p.SetIsOriginAllowed(origin =>
         {
-            p.WithOrigins(origins)
-             .AllowAnyHeader()
-             .AllowAnyMethod();
-            // Gerekirse wildcard alt alan adları:
-            // p.SetIsOriginAllowedToAllowWildcardSubdomains();
-        }
-        else
-        {
-            // Origin verilmemişse, tamamen açık bırak (opsiyonel)
-            p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-        }
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+            var host = uri.Host; // ör: full-stack-ai-chat.vercel.app
+
+            if (host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+        // .AllowCredentials() gerekmiyorsa KAPALI bırakın.
     });
 });
 
@@ -66,48 +64,20 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
-// HTTP — Render TLS'i edge’de hallediyor
-// app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Render edge TLS kullanıyor, genelde gerekmez
 
-// Preflight (OPTIONS) için CORS başlıklarını garanti et
-app.Use(async (ctx, next) =>
-{
-    if (HttpMethods.IsOptions(ctx.Request.Method))
-    {
-        var reqOrigin = ctx.Request.Headers.Origin.ToString();
-
-        if (origins.Length == 0)
-        {
-            ctx.Response.Headers["Access-Control-Allow-Origin"] = "*";
-        }
-        else if (!string.IsNullOrWhiteSpace(reqOrigin) &&
-                 origins.Contains(reqOrigin, StringComparer.OrdinalIgnoreCase))
-        {
-            ctx.Response.Headers["Access-Control-Allow-Origin"] = reqOrigin;
-            ctx.Response.Headers["Vary"] = "Origin";
-        }
-
-        ctx.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
-        ctx.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
-        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
-        return;
-    }
-
-    await next();
-});
-
-// CORS middleware'i erken
+// CORS'u erken koy
 app.UseCors(CorsPolicy);
 
-// Swagger UI her zaman açık (Development + Production)
+// Swagger UI (Dev + Prod)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "FullStack AI Chat API v1");
-    c.RoutePrefix = "swagger"; // => https://<domain>/swagger
+    c.RoutePrefix = "swagger"; // https://<domain>/swagger
 });
 
-// Basit sağlık testi
+// Sağlık testi
 app.MapGet("/", () => Results.Ok(new
 {
     ok = true,
@@ -115,11 +85,7 @@ app.MapGet("/", () => Results.Ok(new
     swagger = "/swagger"
 }));
 
-// CORS politikasını controller'lara zorunlu uygula
+// Controller'lar (CORS zorunlu)
 app.MapControllers().RequireCors(CorsPolicy);
-
-// (Opsiyonel) Her path için OPTIONS'u CORS ile eşle
-app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok())
-   .RequireCors(CorsPolicy);
 
 app.Run();
