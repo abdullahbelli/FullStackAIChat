@@ -1,90 +1,76 @@
-using System.IO;
 using Api.Data;
-using Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Api.Services;
 using Microsoft.OpenApi.Models;
-using Microsoft.Data.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------- Services ----------
+// Controllers
 builder.Services.AddControllers();
 
 // EF Core (SQLite)
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite(connStr));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Options & Services
 builder.Services.Configure<SentimentOptions>(builder.Configuration.GetSection("Sentiment"));
 builder.Services.AddHttpClient<ISentimentClient, SentimentClient>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
-// CORS: origin'i env var'dan oku (Vercel/Render için pratik)
+// CORS
 const string CorsPolicy = "_frontend";
-var clientOrigin = builder.Configuration["ClientOrigin"] ?? "http://localhost:5173";
-
+var clientOrigin = builder.Configuration["ClientOrigin"];
 builder.Services.AddCors(o =>
-    o.AddPolicy(CorsPolicy, p => p
-        .WithOrigins(clientOrigin)
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-    )
+    o.AddPolicy(CorsPolicy, p =>
+    {
+        if (!string.IsNullOrWhiteSpace(clientOrigin))
+            p.WithOrigins(clientOrigin).AllowAnyHeader().AllowAnyMethod();
+        else
+            p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    })
 );
 
-// Swagger (Production'da da env ile açılabilir)
+// Swagger — her zaman aktif
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
 {
     o.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "FullStack AI Chat API",
-        Version = "v1"
+        Version = "v1",
+        Description = "ASP.NET Core + Hugging Face entegre API (Swagger Production açık)"
     });
 });
 
 var app = builder.Build();
 
-// ---------- Startup chores ----------
-// /tmp klasörünü ve SQLite dosyasını garanti et (Render uyumu)
-try
+// ---- Veritabanı otomatik oluşturulsun ----
+using (var scope = app.Services.CreateScope())
 {
-    var csb = new SqliteConnectionStringBuilder(connStr);
-    var dataSourcePath = Path.GetFullPath(csb.DataSource ?? "messages.db");
-    var dir = Path.GetDirectoryName(dataSourcePath);
-    if (!string.IsNullOrEmpty(dir))
-        Directory.CreateDirectory(dir);
-
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated(); // istersen Migrate() de kullanabilirsin
-}
-catch (Exception ex)
-{
-    app.Logger.LogError(ex, "Database bootstrap error.");
+    await db.Database.EnsureCreatedAsync();
 }
 
-// Swagger'ı Production'da açmak için: Swagger__Enabled=true yap
-var enableSwagger = app.Environment.IsDevelopment() ||
-                    builder.Configuration.GetValue<bool>("Swagger:Enabled");
-
-if (enableSwagger)
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "FullStack AI Chat API v1");
-    });
-}
-
-// HTTP kullanıyoruz; HTTPS redirect yok
+// HTTP — Render HTTPS’yi edge’de hallediyor
 // app.UseHttpsRedirection();
 
-// CORS (MapControllers'tan önce)
 app.UseCors(CorsPolicy);
 
-// Basit sağlık testi (kök 404 olmasın)
-app.MapGet("/", () => Results.Ok("FullStack AI Chat API is running."));
+// ✅ Swagger her zaman aktif (Development + Production)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "FullStack AI Chat API v1");
+    c.RoutePrefix = "swagger"; // https://.../swagger
+});
+
+// Basit sağlık testi
+app.MapGet("/", () => Results.Ok(new
+{
+    ok = true,
+    env = app.Environment.EnvironmentName,
+    swagger = "/swagger"
+}));
 
 app.MapControllers();
 
