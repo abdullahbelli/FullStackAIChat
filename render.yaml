@@ -1,11 +1,10 @@
 services:
   - type: web
     name: fullstack-ai-chat-backend
-    env: dotnet
+    runtime: dotnet
     rootDir: backend/Api
     buildCommand: dotnet publish -c Release -o out
     startCommand: dotnet out/Api.dll
-    # .NET'in Render'ın atadığı porta dinlemesi için:
     envVars:
       - key: DOTNET_ENVIRONMENT
         value: Production
@@ -19,6 +18,5 @@ services:
         value: /gradio_api/call/predict
       - key: Sentiment__TimeoutSeconds
         value: 20
-      # frontend’i vercele attıktan sonra burayı güncelle:
       - key: ClientOrigin
         value: http://localhost:5173
