@@ -38,30 +38,30 @@ builder.Services.AddSwaggerGen(o =>
     {
         Title = "FullStack AI Chat API",
         Version = "v1",
-        Description = "ASP.NET Core + Hugging Face entegre API (Swagger Production açık)"
+        Description = "ASP.NET Core + Hugging Face entegrasyonlu API (Swagger prod’da açık)"
     });
 });
 
 var app = builder.Build();
 
-// ---- Veritabanı otomatik oluşturulsun ----
+// DB otomatik oluştur (Render ilk açılışlar için faydalı)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
 }
 
-// HTTP — Render HTTPS’yi edge’de hallediyor
+// HTTP — Render TLS'i edge’de hallediyor
 // app.UseHttpsRedirection();
 
 app.UseCors(CorsPolicy);
 
-// ✅ Swagger her zaman aktif (Development + Production)
+// Swagger UI her zaman açık (Development + Production)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "FullStack AI Chat API v1");
-    c.RoutePrefix = "swagger"; // https://.../swagger
+    c.RoutePrefix = "swagger"; // => https://<domain>/swagger
 });
 
 // Basit sağlık testi
