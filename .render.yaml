@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: fullstack-ai-chat-backend
+    env: dotnet
+    rootDir: backend/Api
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: dotnet out/Api.dll
+    envVars:
+      - key: DOTNET_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        value: Data Source=/tmp/messages.db
+      - key: Sentiment__Endpoint
+        value: https://abdullahbelli-fullstack-ai-chat-sentiment.hf.space
+      - key: Sentiment__PredictPath
+        value: /gradio_api/call/predict
+      - key: Sentiment__TimeoutSeconds
+        value: 20
