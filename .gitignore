@@ -1,0 +1,19 @@
+backend/Api/.env
+# --- Node / Vite ---
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+frontend/.vercel/
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+
+# --- .NET ---
+backend/**/bin/
+backend/**/obj/
+backend/**/.vs/
+backend/**/Properties/launchSettings.json
+
+# --- Logs ---
+**/*.log
