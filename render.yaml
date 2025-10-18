@@ -1,10 +1,26 @@
 services:
   - type: web
     name: fullstack-ai-chat-backend
-    runtime: dotnet
+    # NOT: 'runtime: dotnet' YOK. Dotnet native runtime desteklenmiyor.
+    # Node gibi bir native runner seçiyoruz ve .NET'i kendimiz kuruyoruz:
+    env: node
     rootDir: backend/Api
-    buildCommand: dotnet publish -c Release -o out
-    startCommand: dotnet out/Api.dll
+
+    buildCommand: >
+      bash -lc "
+      curl -fsSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh &&
+      bash dotnet-install.sh --channel 9.0 --install-dir $PWD/.dotnet &&
+      export PATH=$PWD/.dotnet:$PATH &&
+      dotnet --version &&
+      dotnet publish -c Release -o out
+      "
+
+    startCommand: >
+      bash -lc "
+      export PATH=$PWD/.dotnet:$PATH &&
+      dotnet out/Api.dll
+      "
+
     envVars:
       - key: DOTNET_ENVIRONMENT
         value: Production
@@ -19,4 +35,4 @@ services:
       - key: Sentiment__TimeoutSeconds
         value: 20
       - key: ClientOrigin
-        value: http://localhost:5173
+        value: http://localhost:5173   # Vercel URL'ine geçince güncelle
