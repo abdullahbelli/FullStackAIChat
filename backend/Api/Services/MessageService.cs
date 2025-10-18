@@ -2,6 +2,7 @@ using Api.Data;
 using Api.DTOs;
 using Api.Models;
 using Microsoft.EntityFrameworkCore;
+using AiService;
 
 namespace Api.Services
 {

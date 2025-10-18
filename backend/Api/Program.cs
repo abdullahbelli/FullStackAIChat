@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using AiService;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
@@ -17,7 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Sentiment (ai-service kütüphanesi)
 builder.Services.AddSentimentService(builder.Configuration);
 
-// Uygulama servisleri  
+// Uygulama servisleri
 builder.Services.AddScoped<IMessageService, MessageService>();
 
 // ===== CORS (vercel.app + localhost) =====
@@ -67,6 +66,40 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
 }
 
+// --- Her durumda (200/400/500) CORS header'ını garantile ---
+app.Use(async (ctx, next) =>
+{
+    var reqOrigin = ctx.Request.Headers.Origin.ToString();
+    bool isAllowed = false;
+
+    if (!string.IsNullOrWhiteSpace(reqOrigin) &&
+        Uri.TryCreate(reqOrigin, UriKind.Absolute, out var u))
+    {
+        var host = u.Host;
+        if (host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase) ||
+            host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            isAllowed = true;
+        }
+    }
+
+    if (isAllowed)
+    {
+        ctx.Response.Headers["Access-Control-Allow-Origin"] = reqOrigin;
+        ctx.Response.Headers["Vary"] = "Origin";
+
+        if (HttpMethods.IsOptions(ctx.Request.Method))
+        {
+            ctx.Response.Headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+            ctx.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+            ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+    }
+
+    await next();
+});
+
 // app.UseHttpsRedirection(); // Render edge TLS kullanıyor
 
 // CORS'u erken koy
@@ -87,6 +120,10 @@ app.MapGet("/", () => Results.Ok(new
     env = app.Environment.EnvironmentName,
     swagger = "/swagger"
 }));
+
+// Preflight için fallback (tüm yollar)
+app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok())
+   .RequireCors(CorsPolicy);
 
 // Controller'lar (CORS zorunlu)
 app.MapControllers().RequireCors(CorsPolicy);

@@ -160,7 +160,7 @@ const s = StyleSheet.create({
   },
   labelNeutral: {
     backgroundColor: "#e5e7eb",
-    color: "#374151",
+    color: "#065f46",
   },
   labelNegative: {
     backgroundColor: "#fee2e2",
