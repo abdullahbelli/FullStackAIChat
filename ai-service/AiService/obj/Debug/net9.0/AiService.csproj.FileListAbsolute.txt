@@ -1,0 +1,13 @@
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\bin\Debug\net9.0\AiService.deps.json
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\bin\Debug\net9.0\AiService.dll
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\bin\Debug\net9.0\AiService.pdb
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.csproj.AssemblyReference.cache
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.AssemblyInfoInputs.cache
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.AssemblyInfo.cs
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.csproj.CoreCompileInputs.cache
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.sourcelink.json
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.dll
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\refint\AiService.dll
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\AiService.pdb
+C:\Users\belli\OneDrive\Desktop\FullStackAIChat\ai-service\AiService\obj\Debug\net9.0\ref\AiService.dll

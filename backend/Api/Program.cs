@@ -1,7 +1,9 @@
 using Api.Data;
-using Microsoft.EntityFrameworkCore;
 using Api.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using AiService;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +14,10 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Options & Services
-builder.Services.Configure<SentimentOptions>(builder.Configuration.GetSection("Sentiment"));
-builder.Services.AddHttpClient<ISentimentClient, SentimentClient>();
+// Sentiment (ai-service kütüphanesi)
+builder.Services.AddSentimentService(builder.Configuration);
+
+// Uygulama servisleri  
 builder.Services.AddScoped<IMessageService, MessageService>();
 
 // ===== CORS (vercel.app + localhost) =====
@@ -39,7 +42,7 @@ builder.Services.AddCors(o =>
         })
         .AllowAnyHeader()
         .AllowAnyMethod();
-        // .AllowCredentials() gerekmiyorsa KAPALI bırakın.
+        // .AllowCredentials() gerekmiyorsa kapalı kalsın.
     });
 });
 
@@ -57,14 +60,14 @@ builder.Services.AddSwaggerGen(o =>
 
 var app = builder.Build();
 
-// DB otomatik oluştur (Render ilk açılışlar için faydalı)
+// DB otomatik oluştur (Render ilk açılış için faydalı)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
 }
 
-// app.UseHttpsRedirection(); // Render edge TLS kullanıyor, genelde gerekmez
+// app.UseHttpsRedirection(); // Render edge TLS kullanıyor
 
 // CORS'u erken koy
 app.UseCors(CorsPolicy);
