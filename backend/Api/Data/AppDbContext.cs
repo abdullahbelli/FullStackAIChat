@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Api.Data
 {
+    // Uygulamanın veritabanı bağlamı.
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
@@ -10,6 +11,7 @@ namespace Api.Data
         {
         }
 
+        // Mesaj kayıtlarını temsil eden tablo.
         public DbSet<Message> Messages { get; set; }
     }
 }

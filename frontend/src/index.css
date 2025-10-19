@@ -1,11 +1,10 @@
-/* Genel tipografi ve sıfırlama */
+/* Genel yazı tipi ve temel sıfırlama */
 :root {
   font-family: 'Inter', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color: #222;
   background-color: #f7f8fa;
-
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -19,7 +18,7 @@ body,
   height: 100%;
 }
 
-/* Linkler (proje içinde gerekirse) */
+/* Link stilleri */
 a {
   color: #2563eb;
   text-decoration: none;
@@ -29,13 +28,13 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Butonlar (genel varsayılanlar) */
+/* Genel buton stili */
 button {
   font-family: inherit;
   cursor: pointer;
 }
 
-/* Responsive için body varsayılan hizalama */
+/* Responsive temel hizalama */
 body {
   display: flex;
   flex-direction: column;

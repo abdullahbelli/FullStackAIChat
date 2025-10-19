@@ -1,14 +1,16 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using System.Net.Http.Json;  // <-- BUNU EKLE
+using System.Net.Http.Json;
 
 namespace AiService
 {
+
     internal sealed class SentimentClient : ISentimentClient
     {
         private readonly HttpClient _http;
         private readonly SentimentOptions _opts;
         private readonly JsonSerializerOptions _json = new() { PropertyNameCaseInsensitive = true };
+
 
         private const bool LOG = true;
         private static void Log(string msg) { if (LOG) Console.WriteLine("[Sentiment] " + msg); }
@@ -18,9 +20,10 @@ namespace AiService
             _http = http;
             _opts = opts.Value;
             var secs = _opts.TimeoutSeconds <= 0 ? 30 : _opts.TimeoutSeconds;
-            _http.Timeout = TimeSpan.FromSeconds(secs);
+            _http.Timeout = TimeSpan.FromSeconds(secs); // Timeout'u seçeneklere göre ayarla.
         }
 
+        // /api/predict için istek modeli.
         private sealed record PredictReq(string[] data);
 
         public async Task<(string label, double score)> AnalyzeAsync(string text, CancellationToken ct = default)
@@ -29,22 +32,24 @@ namespace AiService
             var input = (text ?? string.Empty).Trim();
             if (input.Length > 1000) input = input[..1000];
 
-            // 1) /api/predict (çoğu Space için yok; yine de deneriz)
+            // Direkt uç nokta 
             var directUrl = $"{baseUrl}/api/predict";
             Log($"DIRECT POST {directUrl}");
             var res1 = await TryDirectPredictAsync(directUrl, input, ct);
             if (res1.ok) return (res1.label!, res1.score);
 
-            // 2) Queue: /gradio_api/call/predict
+            // Kuyruk/polling 
             var queueStart = $"{baseUrl}/gradio_api/call/predict";
             Log($"QUEUE POST {queueStart}");
             var queueRes = await TryQueuePredictAsync(queueStart, input, ct);
             if (queueRes.ok) return (queueRes.label!, queueRes.score);
 
+            // İkisi de olmazsa güvenli varsayılan.
             Log("fallback -> neutral,0");
             return ("neutral", 0.0);
         }
 
+        // /api/predict doğrudan çağrısı.
         private async Task<(bool ok, string? label, double score)> TryDirectPredictAsync(string url, string input, CancellationToken ct)
         {
             try
@@ -67,6 +72,7 @@ namespace AiService
             return (false, null, 0);
         }
 
+        // Gradio kuyruğu ile başlat/poll et ve sonucu çek.
         private async Task<(bool ok, string? label, double score)> TryQueuePredictAsync(string startUrl, string input, CancellationToken ct)
         {
             try
@@ -82,12 +88,12 @@ namespace AiService
                 {
                     using var startDoc = JsonDocument.Parse(startTrim);
 
-                    // bazı Space’ler doğrudan data döndürebilir
+                    // Başlangıç cevabında doğrudan çıktı varsa onu kullan.
                     if (TryGetDataElement(startDoc.RootElement, out var dataEl0) &&
                         TryParseDataFlexible(dataEl0, out var lbl0, out var sc0))
                         return (true, lbl0, sc0);
 
-                    // çoğu durumda event_id ile döner
+                    // Aksi halde event_id ile polling yap.
                     string? eventId = null;
                     if (startDoc.RootElement.TryGetProperty("event_id", out var evEl))
                         eventId = evEl.GetString();
@@ -115,7 +121,7 @@ namespace AiService
 
                         var pollTrim = pollRaw.Trim();
 
-                        // 1) JSON ise normal akış
+                        // JSON ise standart parse, değilse SSE'den oku.
                         if (IsJson(pollTrim))
                         {
                             using var pollDoc = JsonDocument.Parse(pollTrim);
@@ -125,7 +131,6 @@ namespace AiService
                         }
                         else
                         {
-                            // 2) SSE: event: ...\n data: <JSON>
                             if (TryParseFromSse(pollTrim, out var lbl, out var sc))
                                 return (true, lbl, sc);
                         }
@@ -135,7 +140,7 @@ namespace AiService
                 }
                 else
                 {
-                    // çok nadir: start cevabı da SSE olabilir
+                    // Başlangıç cevabı SSE ise oradan çöz.
                     if (TryParseFromSse(startTrim, out var lbl, out var sc))
                         return (true, lbl, sc);
                 }
@@ -144,9 +149,9 @@ namespace AiService
             return (false, null, 0);
         }
 
+        // SSE formatından label/score çıkar.
         private static bool TryParseFromSse(string s, out string label, out double score)
         {
-            // SSE formatı: satırlar halinde; "data:" ile başlayan satırda JSON var.
             label = "neutral"; score = 0.0;
 
             string? dataLine = null;
@@ -154,7 +159,7 @@ namespace AiService
             foreach (var line in lines)
             {
                 if (line.StartsWith("data:"))
-                    dataLine = line; // en son "data:" satırını al
+                    dataLine = line;
             }
             if (string.IsNullOrWhiteSpace(dataLine)) return false;
 
@@ -164,10 +169,9 @@ namespace AiService
             using var doc = JsonDocument.Parse(payload);
             var el = doc.RootElement;
 
-            // normalde ["positive", 0.43] gibi bir dizi gelir
+            // Düz data veya iç içe "data" alanını destekle.
             if (TryParseDataFlexible(el, out label, out score)) return true;
 
-            // bazı durumlarda { "data": [...] } da olabilir
             if (el.ValueKind == JsonValueKind.Object &&
                 el.TryGetProperty("data", out var de) &&
                 TryParseDataFlexible(de, out label, out score))
@@ -176,9 +180,13 @@ namespace AiService
             return false;
         }
 
+        // Basit JSON kontrolü 
         private static bool IsJson(string s) => s.StartsWith('{') || s.StartsWith('[');
+
+        // Log çıktısını kısalt.
         private static string TrimForLog(string s) => s.Length <= 400 ? s : s[..400] + "...";
 
+        // Çeşitli API cevaplarında "data" düğümünü bul.
         private static bool TryGetDataElement(JsonElement root, out JsonElement dataEl)
         {
             if (root.ValueKind == JsonValueKind.Object &&
@@ -192,6 +200,7 @@ namespace AiService
             dataEl = default; return false;
         }
 
+        // Esnek veri yapılarından (object/array) label+score oku.
         private static bool TryParseDataFlexible(JsonElement dataEl, out string label, out double score)
         {
             label = "neutral"; score = 0.0;
@@ -214,6 +223,7 @@ namespace AiService
             return false;
         }
 
+        // {"label": "...", "score": ...} nesnesini oku.
         private static bool TryReadLabelScoreObject(JsonElement obj, out string label, out double score)
         {
             label = "neutral"; score = 0.0;
@@ -236,6 +246,7 @@ namespace AiService
             return false;
         }
 
+        // ["label", score] veya benzeri çiftleri oku.
         private static bool ReadPair(JsonElement lEl, JsonElement sEl, out string label, out double score)
         {
             label = NormalizeLabel(lEl.GetString()); score = 0.0;
@@ -253,6 +264,7 @@ namespace AiService
             return false;
         }
 
+        // Model/servis etiketlerini ortak forma çevir.
         private static string NormalizeLabel(string? raw)
         {
             var v = (raw ?? "neutral").Trim().ToLowerInvariant();

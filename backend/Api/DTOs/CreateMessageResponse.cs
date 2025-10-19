@@ -1,5 +1,6 @@
 namespace Api.DTOs
 {
+    // Yeni mesaj oluşturma sonucunu döndürür
     public class CreateMessageResponse
     {
         public int Id { get; set; }

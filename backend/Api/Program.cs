@@ -6,20 +6,20 @@ using AiService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Controllers
+// MVC controllerlarını ekle
 builder.Services.AddControllers();
 
-// EF Core (SQLite)
+// EF Core (SQLite) bağlamı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Sentiment (ai-service kütüphanesi)
+// Duygu analizi servisi 
 builder.Services.AddSentimentService(builder.Configuration);
 
-// Uygulama servisleri
+// Uygulama servisleri 
 builder.Services.AddScoped<IMessageService, MessageService>();
 
-// ===== CORS (vercel.app + localhost) =====
+// CORS politikası vercel.app + localhost
 const string CorsPolicy = "_frontend";
 
 builder.Services.AddCors(o =>
@@ -29,7 +29,7 @@ builder.Services.AddCors(o =>
         p.SetIsOriginAllowed(origin =>
         {
             if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
-            var host = uri.Host; // ör: full-stack-ai-chat.vercel.app
+            var host = uri.Host;
 
             if (host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase))
                 return true;
@@ -41,11 +41,11 @@ builder.Services.AddCors(o =>
         })
         .AllowAnyHeader()
         .AllowAnyMethod();
-        // .AllowCredentials() gerekmiyorsa kapalı kalsın.
+
     });
 });
 
-// ===== Swagger — her zaman aktif =====
+// Swagger 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o =>
 {
@@ -59,14 +59,14 @@ builder.Services.AddSwaggerGen(o =>
 
 var app = builder.Build();
 
-// DB otomatik oluştur (Render ilk açılış için faydalı)
+// İlk kurulumda DB'yi oluştur
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
 }
 
-// --- Her durumda (200/400/500) CORS header'ını garantile ---
+// Özel CORS yanıt başlıkları 
 app.Use(async (ctx, next) =>
 {
     var reqOrigin = ctx.Request.Headers.Origin.ToString();
@@ -100,20 +100,18 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-// app.UseHttpsRedirection(); // Render edge TLS kullanıyor
-
-// CORS'u erken koy
+// Tanımlı CORS politikasını uygula
 app.UseCors(CorsPolicy);
 
-// Swagger UI (Dev + Prod)
+// Swagger UI
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "FullStack AI Chat API v1");
-    c.RoutePrefix = "swagger"; // https://<domain>/swagger
+    c.RoutePrefix = "swagger";
 });
 
-// Sağlık testi
+// Durum bilgisi
 app.MapGet("/", () => Results.Ok(new
 {
     ok = true,
@@ -121,11 +119,11 @@ app.MapGet("/", () => Results.Ok(new
     swagger = "/swagger"
 }));
 
-// Preflight için fallback (tüm yollar)
+// OPTIONS istekleri için genel cevap
 app.MapMethods("{*path}", new[] { "OPTIONS" }, () => Results.Ok())
    .RequireCors(CorsPolicy);
 
-// Controller'lar (CORS zorunlu)
+// Controller route'ları
 app.MapControllers().RequireCors(CorsPolicy);
 
 app.Run();

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 
+// API taban adresi .env'den alınır.
 const API = `${import.meta.env.VITE_API_BASE_URL}/api/messages`;
 
 export default function Chat() {
@@ -8,6 +9,7 @@ export default function Chat() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Mesaj gönderme ve analiz isteği
   const send = async () => {
     if (!text.trim()) return;
     setLoading(true);
@@ -24,16 +26,20 @@ export default function Chat() {
 
   return (
     <>
+      {/* Mesaj giriş alanı */}
       <textarea
         rows={3}
         placeholder="Mesajını yaz..."
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
+
+      {/* Gönder butonu */}
       <button onClick={send} disabled={loading}>
         {loading ? "Analiz ediliyor..." : "Gönder"}
       </button>
 
+      {/* Mesaj listesi */}
       <div className="list">
         {items.map((m) => (
           <div key={m.id} className="item">

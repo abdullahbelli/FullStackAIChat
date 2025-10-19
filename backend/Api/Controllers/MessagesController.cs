@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
+    // Mesaj oluşturma ve listeleme işlemlerini yöneten API controller.
     [ApiController]
     [Route("api/[controller]")]
     public class MessagesController : ControllerBase
@@ -12,7 +13,7 @@ namespace Api.Controllers
 
         public MessagesController(IMessageService svc) => _svc = svc;
 
-        /// <summary>Yeni mesaj oluşturur, AI ile duygu analizi yapar ve sonucu döner.</summary>
+        // Yeni mesaj oluşturur.
         [HttpPost]
         public async Task<ActionResult<CreateMessageResponse>> Create([FromBody] CreateMessageRequest req, CancellationToken ct)
         {
@@ -25,19 +26,17 @@ namespace Api.Controllers
             }
             catch (ArgumentException ex)
             {
-                // Örn. boş/çok uzun metin vb.
+                // Geçersiz parametre hatası.
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception)
             {
-                // AI servisi erişilemezse MessageService nötr kayda düşecek şekilde tasarlandı.
-                // Yine de beklenmeyen hata için 502 dönmek istersen:
-                // return StatusCode(502, new { message = "Sentiment service unavailable." });
+                // Diğer hatalar framework tarafından ele alınır.
                 throw;
             }
         }
 
-        /// <summary>En yeni mesajları listeler (varsayılan 50 kayıt).</summary>
+        // Mesaj listesini döndürür.
         [HttpGet]
         public async Task<ActionResult<ListMessagesResponse>> List([FromQuery] int take = 50, [FromQuery] int skip = 0, CancellationToken ct = default)
         {

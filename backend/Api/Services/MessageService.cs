@@ -6,6 +6,7 @@ using AiService;
 
 namespace Api.Services
 {
+    // Mesaj oluşturma ve listeleme işlemlerini yönetir
     internal sealed class MessageService : IMessageService
     {
         private readonly AppDbContext _db;
@@ -17,17 +18,16 @@ namespace Api.Services
             _sentiment = sentiment;
         }
 
+        // Yeni mesaj oluşturur ve duygu analizini uygular
         public async Task<CreateMessageResponse> CreateAsync(string text, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(text))
                 throw new ArgumentException("Text is required.", nameof(text));
 
-            // 1K limit (HF tarafıyla hizalı)
             var input = text.Trim();
             if (input.Length > 1000) input = input[..1000];
 
             var utcNow = DateTime.UtcNow;
-
             var label = "neutral";
             var score = 0.0;
 
@@ -37,7 +37,7 @@ namespace Api.Services
             }
             catch (Exception ex)
             {
-                // Degrade mod: AI ulaşılamazsa nötr kaydet
+                // Analiz başarısızsa nötr değerler
                 Console.WriteLine("[Sentiment] fallback neutral. Reason: " + ex.Message);
                 label = "neutral";
                 score = 0.0;
@@ -64,6 +64,7 @@ namespace Api.Services
             };
         }
 
+        // Mesaj listesini zaman sırasına göre döndür
         public async Task<ListMessagesResponse> ListAsync(int take = 50, int skip = 0, CancellationToken ct = default)
         {
             take = Math.Clamp(take, 1, 200);
