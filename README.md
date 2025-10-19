@@ -21,14 +21,14 @@ Canlı demo ve kod yapısı:
 
 ## 🧩 Mimari
 
-FullStackAIChat/
-├─ frontend/ # React (TS) web istemci (Vercel)
-├─ mobile/ # React Native CLI (Android)
-├─ backend/
-│ └─ Api/ # .NET Core Web API + SQLite
-├─ ai-service/ # HF Space entegrasyon notları / örnekler
-├─ FullStackAIChat.sln # .NET çözüm dosyası
-└─ .gitignore, ... # Çeşitli proje/IDE dosyaları
+-FullStackAIChat/
+-├─ frontend/ # React (TS) web istemci (Vercel)
+-├─ mobile/ # React Native CLI (Android)
+-├─ backend/
+-│ └─ Api/ # .NET Core Web API + SQLite
+-├─ ai-service/ # HF Space entegrasyon notları / örnekler
+-├─ FullStackAIChat.sln # .NET çözüm dosyası
+-└─ .gitignore, ... # Çeşitli proje/IDE dosyaları
 
 markdown
 Kodu kopyala
