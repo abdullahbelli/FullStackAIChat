@@ -161,16 +161,5 @@ AI_BASE_URL=https://<hf-space-url>
 
 
 
-## 💡 Katkı ve Üretim Süreci
 
-**ChatGPT ile üretilen bölümler:**
-- Controller / Service taslakları  
-- React component iskeletleri  
-- React Native ekranları  
-- HTTP client kodları  
-
-**Senin katkıların:**
-- SQLite bağlantısı  
-- Arayüz yönlendirmeleri *(routing, state management)*  
-- Tasarım sadeleştirmesi  
 
